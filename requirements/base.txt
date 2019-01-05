@@ -1,0 +1,5 @@
+Flask
+Flask-graphql
+-e git+https://github.com/gbozee/django-paystack.git#egg=paystack
+-e git+https://github.com/gbozee/graphene-utils.git#egg=graphene_utils
+waitress

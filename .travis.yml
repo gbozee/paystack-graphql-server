@@ -1,0 +1,9 @@
+language: node_js
+node_js:
+  - "10"
+
+script:
+  - npm install -g now
+  - now --no-clipboard --token=$NOW_TOKEN --build-env secret_key=${PAYSTACK_SECRET_KEY} --build-env public_key=${PAYSTACK_PUBLIC_KEY}
+  - now alias --token=$NOW_TOKEN
+

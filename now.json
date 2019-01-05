@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "name": "paystack-graphql-server",
+  "alias": "paystack-graphql-server",
+  "type": "docker"
+  
+}

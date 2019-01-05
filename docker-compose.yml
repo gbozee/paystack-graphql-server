@@ -1,0 +1,8 @@
+version: "2"
+# networks:
+#   app: null
+services:
+  app:
+    image: paystack-graphql-server_app
+    ports:
+      - "5000:5000"  
