@@ -6,8 +6,10 @@ from graphene.types.generic import GenericScalar
 from graphene_utils import utils
 from api import PayStack
 import auth
+from flask_cors import CORS
 
 application = Flask(__name__)
+CORS(application)
 
 PaystackRecipientData = utils.createGrapheneClass(
     'PaystackRecipientData', [('recipient_code', str), ('type', str),
