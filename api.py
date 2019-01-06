@@ -1,26 +1,24 @@
 from paystack.utils import PaystackAPI
 import logging
 import requests
-import os
+from auth import keys
 logger = logging.getLogger(__name__)
 
 PAYSTACK_BASE_URL = 'https://api.paystack.co'
 
-PAYSTACK_SECRET_KEY = os.environ['PAYSTACK_SECRET_KEY']
-
 
 class PayStack(object):
-    def __init__(self):
+    def __init__(self, environment='dev'):
         self.api = PaystackAPI(
             django=False,
             base_url=PAYSTACK_BASE_URL,
-            public_key=os.environ['PAYSTACK_PUBLIC_KEY'],
-            secret_key=PAYSTACK_SECRET_KEY)
+            public_key=keys[environment]['public_key'],
+            secret_key=keys[environment]['secret_key'])
 
-    headers = headers = {
-        "Authorization": "Bearer %s" % PAYSTACK_SECRET_KEY,
-        "Content-Type": "application/json",
-    }
+        self.headers = {
+            "Authorization": "Bearer %s" % keys[environment]['secret_key'],
+            "Content-Type": "application/json",
+        }
 
     def create_customer(self, data):
         r = requests.post(

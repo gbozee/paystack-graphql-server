@@ -28,6 +28,7 @@ PaystackBankData = utils.createGrapheneClass('PaystackBankData',
 
 
 class PaystackManager(graphene.ObjectType):
+    environment = graphene.String()
     create_recipient = graphene.Field(
         PaystackRecipientData,
         account_name=graphene.String(required=True),
@@ -45,16 +46,16 @@ class PaystackManager(graphene.ObjectType):
         PaystackTransferData, transfer_code=graphene.String(required=True))
 
     def resolve_get_transfer(self, info, **kwargs):
-        paystack_api = PayStack()
+        paystack_api = PayStack(self.environment)
         result = paystack_api.get_transfer(kwargs['transfer_code'])
         return result
 
     def resolve_get_banks(self, info, **kwargs):
-        paystack_api = PayStack()
+        paystack_api = PayStack(self.environment)
         return paystack_api.get_banks()
 
     def resolve_create_transfer(self, info, **kwargs):
-        paystack_api = PayStack()
+        paystack_api = PayStack(self.environment)
         PaymentInfo = collections.namedtuple('PaymentInfo', ['recipient_code'])
         result = paystack_api.create_transfer_code(
             PaymentInfo(kwargs['recipient_code']),
@@ -63,7 +64,7 @@ class PaystackManager(graphene.ObjectType):
         return result
 
     def resolve_create_recipient(self, info, **kwargs):
-        paystack_api = PayStack()
+        paystack_api = PayStack(self.environment)
         PaymentInfo = collections.namedtuple(
             'PaymentInfo', ['account_name', 'account_id', 'bank'])
         instance = PaymentInfo(**kwargs)
@@ -72,7 +73,7 @@ class PaystackManager(graphene.ObjectType):
         return result
 
     def resolve_account_balance(self, info, **kwargs):
-        paystack_api = PayStack()
+        paystack_api = PayStack(self.environment)
         result = paystack_api.check_balance()
         if kwargs.get('currency'):
             return [
@@ -83,12 +84,14 @@ class PaystackManager(graphene.ObjectType):
 
 
 class Query(graphene.ObjectType):
-    paystack_endpoint = graphene.Field(PaystackManager)
+    paystack_endpoint = graphene.Field(
+        PaystackManager, environment=graphene.String(required=True))
 
     def resolve_paystack_endpoint(self, info, **kwargs):
-        is_authorized = auth.authenticate(info.context)
+        is_authorized = auth.authenticate(
+            info.context, environment=kwargs['environment'])
         if is_authorized:
-            return PaystackManager()
+            return PaystackManager(environment=kwargs['environment'])
 
 
 schema = graphene.Schema(query=Query, auto_camelcase=False)

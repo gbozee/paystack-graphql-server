@@ -4,6 +4,6 @@ node_js:
 
 script:
   - npm install -g now
-  - now --no-clipboard --token=$NOW_TOKEN --build-env secret_key=${PAYSTACK_SECRET_KEY} --build-env public_key=${PAYSTACK_PUBLIC_KEY}
+  - now --no-clipboard --token=$NOW_TOKEN --build-env secret_key=${PAYSTACK_SECRET_KEY} --build-env public_key=${PAYSTACK_PUBLIC_KEY} --build-env prod_public_key=${PROD_PAYSTACK_PUBLIC_KEY} --build-env prod_secret_key=${PROD_PAYSTACK_SECRET_KEY}
   - now alias --token=$NOW_TOKEN
 

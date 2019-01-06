@@ -13,9 +13,13 @@ RUN find . | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf
 
 ARG secret_key
 ARG public_key
+ARG prod_public_key
+ARG prod_secret_key
 
 ENV PAYSTACK_SECRET_KEY=$secret_key
 ENV PAYSTACK_PUBLIC_KEY=$public_key
+ENV PROD_PAYSTACK_SECRET_KEY=$prod_secret_key
+ENV PROD_PAYSTACK_PUBLIC_KEY=$prod_public_key
 EXPOSE 5000
 
 WORKDIR /application
