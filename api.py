@@ -38,43 +38,21 @@ class PayStack(object):
         return None
 
     def initialize_transaction(self, data):
-        """
-        Initializing transaction from server us
-        :data : {
-            'reference','email','amount in kobo',
-            'callback_url'
-        }
-        """
-        r = requests.post(
-            PAYSTACK_BASE_URL + "/transaction/initialize",
-            json=data,
-            headers=self.headers,
-        )
-        if r.status_code >= 400:
-            logger.info(r.text)
-            r.raise_for_status()
-        if r.json()["status"]:
-            return r.json()["data"]
-        return {}
+        result = self.api.transaction_api.initialize_transaction(
+            reference=data['reference'],
+            email=data['email'],
+            amount=data['amount'],
+            callback_url=data['callback_url'])
+        if result[0]:
+            return result[2]
 
     def recurrent_charge(self, data):
-        """
-        When attempting to bill an existing customers that has already paid through us
-        :data : {
-            'authorization_code','email','amount'
-        }
-        """
-        r = requests.post(
-            PAYSTACK_BASE_URL + "/transaction/charge_authorization",
-            json=data,
-            headers=self.headers,
-        )
-        if r.status_code >= 400:
-            r.raise_for_status()
-        logger.info(r.json())
-        if r.json()["status"]:
-            return True
-        return False
+        result = self.api.transaction_api.recurrent_charge(
+            authorization_code=data['authorization_code'],
+            email=data['email'],
+            amount=data['amount'])
+        if result[0]:
+            return result[2]
 
     def create_recipient(self, payout_details):
         """bank, account_id,account_name"""
@@ -124,40 +102,27 @@ class PayStack(object):
         return self.api.transfer_api.check_balance()
 
     def get_banks(self):
-        req = requests.get(
-            PAYSTACK_BASE_URL + "/bank",
-            headers=self.headers,
-        )
-        if req.status_code >= 400:
-            req.raise_for_status()
-        return req.json()['data']
+        result = self.api.transfer_api.get_banks()
+        if result[0]:
+            return result[2]
 
     def get_bank_code(self, bank_name):
-        options = {
-            "Citibank": "023",
-            "Access Bank": "044",
-            "Diamond Bank": "063",
-            "Ecobank Nigeria": "050",
-            "Enterprise Bank": "084",
-            "Fidelity Bank Nigeria": "070",
-            "First Bank of Nigeria": "011",
-            "First City Monument Bank": "214",
-            "Guaranty Trust Bank": "058",
-            "Heritage Bank": "030",
-            "Keystone Bank Limited": "082",
-            "Mainstreet Bank": "014",
-            "Skye Bank": "076",
-            "Stanbic IBTC Bank": "221",
-            "Standard Chartered Bank": "068",
-            "Sterling Bank": "232",
-            "Union Bank of Nigeria": "032",
-            "United Bank for Africa": "033",
-            "Unity Bank": "215",
-            "Wema Bank": "035",
-            "Zenith Bank": "057",
-            "Jaiz Bank": "301",
-            "Suntrust Bank": "100",
-            "Providus Bank": "101",
-            "Parallex Bank": "526",
-        }
-        return options.get(bank_name)
+        return self.api.transfer_api.get_bank_code(bank_name)
+
+    def can_charge_client(self, data):
+        result = self.api.transaction_api.check_authorization(
+            authorization_code=data['authorization_code'],
+            email=data['email'],
+            amount=data['amount'])
+        return result[2]
+
+    def all_transactions(self, filters):
+        result = self.api.transaction_api.get_transactions(
+            perPage=filters.get('perPage', 50),
+            customer_id=filters.get('customer_id'),
+            status=filters.get('status'),
+            _from=filters.get('_from'),
+            _to=filters.get('_to'),
+            amount=filters.get('amount'))
+        if result[0]:
+            return result[2]
