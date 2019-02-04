@@ -19,9 +19,10 @@ PaystackBankData = utils.createGrapheneClass('PaystackBankData',
                                              [('name', str), ('slug', str),
                                               ('code', str), ('type', str)])
 PaystackCustomer = utils.createGrapheneClass(
-    'PaystackCustomer', [('id', int), ('first_name', str), ('last_name', str),
-                         ('email', str), ('phone', str),
-                         ('customer_code', str), ('risk_action', str)])
+    'PaystackCustomer',
+    [('id', int), ('first_name', str), ('last_name', str), ('email', str),
+     ('phone', str), ('customer_code', str), ('risk_action', str),
+     ('metadata', 'json'), ('message', str)])
 PaystackCard = utils.createGrapheneClass(
     'PaystackCard', [('authorization_code', str), ('bin', str), ('last4', str),
                      ('exp_month', str), ('exp_year', str), ('channel', str),
@@ -35,6 +36,24 @@ PaystackTransaction = utils.createGrapheneClass(
      ('customer', graphene.Field(PaystackCustomer)),
      ('authorization', graphene.Field(PaystackCard)), ('plan', 'json'),
      ('subaccount', 'json')])
+PaystackSubscription = utils.createGrapheneClass(
+    "PaystackSubscription",
+    [("customer", int), ("plan", "json"), ("integration", int),
+     ("domain", str), ("status", str), ("amount", float),
+     ("subscription_code", str), ("email_token", str), ("id", int),
+     ("createdAt", str), ("next_payment_date", str), ("updatedAt", str),
+     ('message', str)])
+PaystackPlan = utils.createGrapheneClass(
+    "PaystackPlan",
+    [("integration", int),
+     ('subscriptions', graphene.List(PaystackSubscription)),
+     ("plan_code", str), ("name", str), ("amount", float),
+     ("description", str), ("interval", str), ("hosted_page_url", str),
+     ("currency", str), ("id", int), ("createdAt", str), ("updatedAt", str),
+     ("message", str)],
+)
+PaystackPlanResult = utils.createGrapheneClass(
+    "PaystackPlanResult", [('name', str), ('plan', 'json'), ('interval', str)])
 
 
 class BaseKlass(object):
@@ -143,4 +162,129 @@ class TransactionType(BaseKlass, graphene.ObjectType):
 
 
 class CustomerType(BaseKlass, graphene.ObjectType):
-    pass
+    create_customer = graphene.Field(
+        PaystackCustomer,
+        email=graphene.String(required=True),
+        first_name=graphene.String(),
+        last_name=graphene.String(),
+        phone=graphene.String(),
+        metadata=graphene.types.json.JSONString())
+    all_customers = graphene.List(
+        PaystackCustomer, perPage=graphene.Int(), page=graphene.Int())
+    get_customer = graphene.Field(
+        PaystackCustomer,
+        id=graphene.String(),
+        email=graphene.String(),
+        customer_code=graphene.String(),
+        blacklist=graphene.Boolean(),
+        fields=graphene.types.json.JSONString())
+    deactivate_card = graphene.Field(
+        GenericScalar, authorization_code=graphene.String(required=True))
+
+    def resolve_create_customer(self, info, **kwargs):
+        return self.paystack_api.create_customer(kwargs)
+
+    def resolve_all_customers(self, info, **kwargs):
+        result = self.paystack_api.all_customers(kwargs)
+        return result
+
+    def resolve_get_customer(self, info, **kwargs):
+        result = self.paystack_api.get_customer(**kwargs)
+        return result
+
+    def resolve_deactivate_card(self, info, **kwargs):
+        return self.paystack_api.deactivate_card(kwargs['authorization_code'])
+
+
+SupportedCurrencyType = utils.createGrapheneInputClass(
+    'SupportedCurrencyInputType', [('usd', float), ('ngn', float)])
+
+Interval = graphene.Enum('Interval', [
+    ('hourly', 'hourly'),
+    ('daily', 'daily'),
+    ('weekly', 'weekly'),
+    ('monthly', 'monthly'),
+    ('biannually', 'biannually'),
+    ('annually', 'annually'),
+])
+
+SupportedCurrency = graphene.Enum('SupportedCurrency', [
+    ('ngn', 'ngn'),
+    ('usd', 'usd'),
+])
+
+
+class PlanSubscriptionType(BaseKlass, graphene.ObjectType):
+    create_plan = graphene.Field(
+        PaystackPlanResult,
+        name=graphene.String(required=True),
+        interval=Interval(required=True),
+        amount=SupportedCurrencyType(required=True),
+        currency=SupportedCurrency(),
+    )
+    all_plans = graphene.List(
+        PaystackPlan,
+        perPage=graphene.Int(),
+        page=graphene.Int(),
+        interval=Interval(),
+    )
+    get_plan = graphene.Field(
+        PaystackPlan,
+        plan_code=graphene.String(required=True),
+        fields=graphene.types.json.JSONString())
+
+    create_subscription = graphene.Field(
+        PaystackSubscription,
+        customer=graphene.String(required=True),
+        plan=graphene.String(required=True),
+        authorization=graphene.String(),
+        start_date=graphene.types.datetime.DateTime(required=True),
+    )
+    all_subscriptions = graphene.List(
+        PaystackSubscription,
+        perPage=graphene.Int(),
+        page=graphene.Int(),
+        customer=graphene.Int(),
+        plan=graphene.Int())
+
+    get_subscription = graphene.Field(
+        PaystackSubscription,
+        code=graphene.String(required=True),
+        activate=graphene.Boolean(),
+        token=graphene.String())
+
+    def resolve_create_plan(self, info, **kwargs):
+        params = {
+            'name': kwargs['name'],
+            'interval': kwargs['interval'],
+        }
+        if kwargs.get('currency'):
+            params['amount'] = {kwargs['currency']: kwargs['amount']}
+        else:
+            params['amount'] = kwargs['amount']
+        result = self.paystack_api.create_plans(params)
+        return result
+
+    def resolve_all_plans(self, info, **kwargs):
+        result = self.paystack_api.all_plans(kwargs)
+        return result
+
+    def resolve_get_plan(self, info, **kwargs):
+        result = self.paystack_api.get_plan(
+            kwargs['plan_code'], fields=kwargs.get('fields'))
+        return result
+
+    def resolve_create_subscription(self, info, **kwargs):
+        result = self.paystack_api.create_subscription({
+            **kwargs, 'start_date':
+            kwargs['start_date'].replace(microsecond=0).isoformat()
+        })
+        return result
+
+    def resolve_all_subscriptions(self, info, **kwargs):
+        result = self.paystack_api.all_subscriptions(kwargs)
+        return result
+
+    def resolve_get_subscription(self, info, **kwargs):
+        result = self.paystack_api.get_subscription(**kwargs)
+        return result

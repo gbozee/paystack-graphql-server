@@ -21,11 +21,44 @@ class PayStack(object):
         }
 
     def create_customer(self, data):
-        r = requests.post(
-            PAYSTACK_BASE_URL + "/customer", json=data, headers=self.headers)
-        if r.status_code >= 400:
-            raise (requests.HTTPError)
-        return r.json()["data"]["customer_code"]
+        result = self.api.customer_api.n_create_customer(data)
+        if result[0]:
+            return result[2]
+        # r = requests.post(
+        #     PAYSTACK_BASE_URL + "/customer", json=data, headers=self.headers)
+        # if r.status_code >= 400:
+        #     raise (requests.HTTPError)
+        # return r.json()["data"]["customer_code"]
+        #
+    def all_customers(self, filters):
+        result = self.api.customer_api.list_customer(filters)
+        if result[0]:
+            return result[2]
+
+    def get_customer(self,
+                     id=None,
+                     customer_code=None,
+                     email=None,
+                     blacklist=None,
+                     fields=None):
+        if blacklist is not None:
+            result = self.api.customer_api.blacklist_customer(
+                customer_code, blacklist)
+        elif fields:
+            result = self.api.customer_api.update_customer(
+                id or customer_code, fields)
+        else:
+            result = self.api.customer_api.get_customer(
+                id or email or customer_code)
+        if result[0]:
+            # if not blacklist None:
+            #     return {'message': result[1]}
+            return result[2]
+
+    def deactivate_card(self, auth_code):
+        result = self.api.customer_api.deactivate_auth(auth_code)
+        if result[0]:
+            return {'message': result[1]}
 
     def validate_transaction(self, ref):
         result = self.api.transaction_api.verify_payment(ref)
@@ -125,4 +158,51 @@ class PayStack(object):
             _to=filters.get('_to'),
             amount=filters.get('amount'))
         if result[0]:
+            return result[2]
+
+    def create_plans(self, data):
+        result = self.api.subscription_api.create_plans(data)
+        if result[0]:
+            return result[1]
+
+    def all_plans(self, filters):
+        result = self.api.subscription_api.list_plans(filters)
+        if result[0]:
+            return result[2]
+
+    def get_plan(self, plan_code, fields=None):
+        if fields:
+            result = self.api.subscription_api.update_plan({
+                **fields, 'plan':
+                plan_code
+            })
+        else:
+            result = self.api.subscription_api.get_plan(plan_code)
+        if result[0]:
+            if fields:
+                return {'message': result[1]}
+            return result[2]
+
+    def create_subscription(self, data):
+        result = self.api.subscription_api.create_subscription(data)
+        if result[0]:
+            return result[2]
+
+    def all_subscriptions(self, filters):
+        result = self.api.subscription_api.get_all_subscriptions(filters)
+        if result[0]:
+            return result[2]
+
+    def get_subscription(self, code=None, activate=None, token=None):
+        if activate is not None:
+            result = self.api.subscription_api.activate_subscription(
+                {
+                    'code': code,
+                    'token': token
+                }, activate=activate)
+        else:
+            result = self.api.subscription_api.get_subscription(code)
+        if result[0]:
+            if activate is not None:
+                return {'message': result[1]}
             return result[2]

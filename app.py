@@ -31,6 +31,10 @@ class Query(graphene.ObjectType):
     transactions = graphene.Field(
         l_types.TransactionType, environment=graphene.String(required=True))
 
+    plan_subscriptions = graphene.Field(
+        l_types.PlanSubscriptionType,
+        environment=graphene.String(required=True))
+
     def resolve_paystack_endpoint(self, info, **kwargs):
         return authenticate(info, kwargs, PaystackManager)
 
@@ -42,6 +46,9 @@ class Query(graphene.ObjectType):
 
     def resolve_customers(self, info, **kwargs):
         return authenticate(info, kwargs, l_types.CustomerType)
+
+    def resolve_plan_subscriptions(self, info, **kwargs):
+        return authenticate(info, kwargs, l_types.PlanSubscriptionType)
 
 
 schema = graphene.Schema(query=Query, auto_camelcase=False)
